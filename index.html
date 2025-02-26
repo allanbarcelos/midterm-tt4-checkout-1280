@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout Evaluation</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+  <div class="container mt-5">
+    <h2 class="mb-4">Checkout Evaluation</h2>
+
+
+    <div class="alert alert-info" role="alert">
+      <p>Following my active and participatory teaching model, I would like to offer you the opportunity to
+        participate in the correction of your exam. This way, you can calculate your final grade based on the
+        criteria I will use. Each "yes" adds 2 points, each "no" subtracts 1 point, and each "partial" adds 1 point.</p>
+      <p>I would also like you to explain why you chose each option. Please write a detailed comment on what I
+        should consider in your exam, especially regarding this criterion.</p>
+      <p>The maximum final grade will be 10, which will be converted to a percentage. I will also be evaluating
+        your exam and will use the same form. At the end, I will compare the grade I assign with the grade you
+        calculated. If there is a significant discrepancy, I will reach out so we can analyze your process
+        together. If the differences are minor, the higher grade will be considered as final. For example, if my
+        evaluation gives you an 8, but yours gives you 8.7, I will consider your grade.</p>
+      <p>Once finished, I kindly ask you to leave your feedback and suggestions about this exam model. I would
+        also appreciate it if you could share any thoughts on my classes, so I can improve and adapt the
+        teaching to better meet each student's needs.</p>
+      <p>After completing the form, please click "Generate PDF" and submit it in the corresponding activity
+        section on the LEA portal.</p>
+    </div>
+
+    <div class="alert alert-warning" role="alert">
+      <p class="fw-bold">Don&grave;t worry! All items are initially marked as 'no' by default. As you go through
+        each item and complete your self-assessment, you'll notice your final grade will update accordingly.</p>
+    </div>
+
+    <div class="d-flex mb-3 align-items-center gap-2">
+      <h4 class="me-auto" id="finalScore">Final Score: </h4>
+      <button class="btn btn-primary" id="calculateFinalScoreBtn" onclick="calculateFinalScore()" disabled>Calculate
+        Final Score</button>
+      <button class="btn btn-success" id="downloadPdfBtn" style="display: none;" onclick="generatePDF()">Download
+        PDF</button>
+    </div>
+
+
+    <div class="accordion" id="itemsContainer">
+
+      <div class="accordion-item">
+        <h2 class="accordion-header" id="headingStudentId">
+          <button class="accordion-button fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#studentId"
+            aria-expanded="true" aria-controls="studentId">
+            Student:
+          </button>
+        </h2>
+        <div id="studentId" class="accordion-collapse collapse show" aria-labelledby="StudentId"
+          data-bs-parent="#itemsContainer">
+          <div class="accordion-body">
+            <div class="row g-2 align-items-center">
+              <div class="col-12 col-sm-5 col-md-3 col-lg-2 col-xl-2">
+                <label for="helpStudentCode" class="form-label">Student Code</label>
+                <input type="text" class="form-control" name="studentCode" id="studentCode"
+                  aria-describedby="helpStudentCode" placeholder="" />
+                <small id="helpStudentCode" class="form-text text-muted">
+                  Only numbers
+                  <span id="helpStudentCodeRequired" class="text-danger float-end">required</span>
+                </small>
+              </div>
+              <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-3">
+                <label for="helpStudentName" class="form-label">Name</label>
+                <input type="text" class="form-control" name="studentName" id="studentName"
+                  aria-describedby="helpStudentName" placeholder="" />
+                <small id="helpStudentName" class="form-text text-muted">Only First and Last, eg.:
+                  John Doe
+                  <span id="helpStudentNameRequired" class="text-danger float-end">required</span>
+                </small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- <div class="accordion-item">
+        <h2 class="accordion-header" id="headingQuestionsGrade">
+          <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse"
+            data-bs-target="#questionsGrade" aria-expanded="false" aria-controls="questionsGrade">
+            Questions Score (0-10):
+          </button>
+        </h2>
+        <div id="questionsGrade" class="accordion-collapse collapse" aria-labelledby="QuestionsGrade"
+          data-bs-parent="#itemsContainer">
+          <div class="accordion-body pb-5">
+            <input type="number" id="questionScore" class="form-control mb-3" min="0" max="10" step="1"
+              placeholder="Type your score min 0 max 10" aria-describedby="helpquestionScore">
+            <small id="helpquestionScore" class="form-text text-muted">
+              <span id="helpQuestionScoreRequired" class="text-danger float-end">required</span>
+            </small>
+          </div>
+        </div>
+      </div> -->
+
+    </div>
+
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+    crossorigin="anonymous"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+  <script>
+    const { jsPDF } = window.jspdf;
+
+    document.addEventListener("DOMContentLoaded", function () {
+      const studentCodeInput = document.getElementById("studentCode");
+      const studentNameInput = document.getElementById("studentName");
+      const questionScoreInput = document.getElementById('questionScore');
+
+      const calculateFinalScoreBtn = document.getElementById('calculateFinalScoreBtn');
+      const accordionStudentButton = document.querySelector("#headingStudentId .accordion-button");
+      // const accordionQuestionsGradeButton = document.querySelector("#headingQuestionsGrade .accordion-button");
+
+      function updateStudentAccordionLabel() {
+        const studentCode = studentCodeInput.value.trim();
+        const studentName = studentNameInput.value.trim();
+        accordionStudentButton.textContent = `Student: ${studentCode || ''} - ${studentName || ''}`;
+      }
+
+      // function updateQuestionScoreAccordionLabel() {
+      //   const questionScore = questionScoreInput.value.trim();
+      //   const score = parseFloat(questionScore);
+      //   accordionQuestionsGradeButton.textContent = `Questions Score: ${isNaN(score) ? '' : score.toFixed(2)}`;
+      // }
+
+      function validateStudentName() {
+        const nameParts = studentNameInput.value.trim().split(/\s+/);
+        if (nameParts.length > 2) {
+          studentNameInput.value = nameParts.slice(0, 2).join(" ");
+        }
+      }
+
+      function validateForm() {
+        // if (studentCodeInput.value && studentNameInput.value && questionScoreInput.value) {
+        if (studentCodeInput.value && studentNameInput.value) {
+          calculateFinalScoreBtn.disabled = false;
+        } else {
+          calculateFinalScoreBtn.disabled = true;
+        }
+      }
+
+      studentCodeInput.addEventListener("input", () => {
+
+        if (studentCodeInput.value.trim() !== "") {
+          document.getElementById("helpStudentCodeRequired").style.display = 'none';
+        } else {
+          document.getElementById("helpStudentCodeRequired").style.display = 'block';
+        }
+
+        // Allow only numbers in studentCode
+        studentCodeInput.value = studentCodeInput.value.replace(/\D/g, ''); // Remove non-digit characters
+        updateStudentAccordionLabel();
+        validateForm();
+      });
+
+      studentNameInput.addEventListener("input", () => {
+
+        if (studentNameInput.value.trim() !== "") {
+          document.getElementById("helpStudentNameRequired").style.display = 'none';
+        } else {
+          document.getElementById("helpStudentNameRequired").style.display = 'block';
+        }
+
+        updateStudentAccordionLabel();
+        validateStudentName();
+        validateForm();
+      });
+
+      // Update question score and apply validation (range 0 to 10)
+      questionScoreInput.addEventListener('input', () => {
+        // Ensure the input is numeric and within the range of 0 to 10
+        let value = questionScoreInput.value.replace(/[^0-9]/g, ''); // Remove non-numeric characters
+
+        if (value !== "") {
+          let intValue = parseInt(value, 10);
+          if (intValue > 10) {
+            intValue = 10; // Cap the value at 10
+          } else if (intValue < 0) {
+            intValue = 0; // Set a minimum value of 0
+          }
+          questionScoreInput.value = intValue;
+        }
+
+        if (questionScoreInput.value.trim() !== "") {
+          document.getElementById("helpquestionScore").style.display = 'none';
+        } else {
+          document.getElementById("helpquestionScore").style.display = 'block';
+        }
+
+        // Trigger form validation and update accordion label
+        validateForm();
+        updateQuestionScoreAccordionLabel();
+      });
+
+      // Prevent non-numeric input on keydown event
+      questionScoreInput.addEventListener('keydown', function (event) {
+        // Allow only number keys (0-9), backspace, delete, and arrow keys
+        if (!/[0-9]/.test(event.key) && event.key !== "Backspace" && event.key !== "Delete" &&
+          event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
+          event.preventDefault();  // Prevent the input of non-numeric characters
+        }
+      });
+
+      studentNameInput.addEventListener("keydown", function (event) {
+        const nameParts = studentNameInput.value.trim().split(/\s+/);
+        if (event.key === ' ' && nameParts.length >= 2) {
+          event.preventDefault();
+        }
+      });
+    });
+
+
+    const items = [
+      "Did you read the provided documentation carefully?",
+      "Did you clarify any doubts during the allocated time?",
+      "Did you create and submit the 'read.txt' file on the LEA platform?",
+      "Did the submitted file follow the required format?",
+
+      "Did you download and extract the 'project.zip' file in the correct directory?",
+      "Did you initialize a Git repository in the extracted directory?",
+      "Did you create a public GitHub repository named 'midterm-tt4-project'?",
+      "Did you make the first commit with the message 'first commit'?",
+      "Did you modify the Dockerfile to ensure correct port configuration for Nginx?",
+      "Did you create 'list-products.html' with 12 Bootstrap Cards displaying products?",
+      "Does each product card contain an image, title, description, price, and add-to-cart button?",
+      "Did you use Bootstrap for styling and maintain consistency with index.html?",
+      "Did you save product images in the 'assets/images' folder and reference them correctly?",
+      "Did you create the corresponding JS and SCSS files for 'list-products.html'?",
+      "Did you update 'webpack.config.js' to include the new files?",
+      "Did you run the development server using 'npm run start' to test the frontend?",
+      "Did you create and submit 'project.txt' file containing the GitHub repository URL?",
+
+      "Did you fork a teammate’s repository following the specified rotation rules?",
+      "Did you create 'add-products.html' with a Bootstrap form for adding new products?",
+      "Does the form include the required fields: Photo, Title, Description (max 100 characters), Price, and Quantity?",
+      "Did you use Bootstrap for styling and maintain consistency with other pages?",
+      "Did you commit the changes with a descriptive message?",
+      "Did you open a pull request to your teammate’s repository?",
+      "Did you review and approve the pull request from your teammate?",
+      "Did you merge the approved pull request and update your local repository with 'git pull'?",
+      "Did you submit 'collaboration.txt' file with URLs of the original and forked repositories?",
+
+      // Docker e Deploy
+      "Is the Dockerfile correctly configured?",
+      "Did you build and run the Docker container for the application?",
+    ];
+
+
+    function generateItems() {
+      const container = document.getElementById("itemsContainer");
+
+      items.forEach((item, index) => {
+        const itemDiv = document.createElement("div");
+        itemDiv.classList.add("accordion-item");
+
+        itemDiv.innerHTML = `
+                    <h2 class="accordion-header" id="heading${index}">
+                        <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapse${index}" aria-expanded="false" aria-controls="collapse${index}">
+                        ${item}&nbsp;&#45;&nbsp;<span class="badge rounded-pill bg-danger">No</span>
+                        </button>
+                    </h2>
+                    <div id="collapse${index}" class="accordion-collapse collapse" aria-labelledby="heading${index}" data-bs-parent="#itemsContainer">
+                        <div class="accordion-body">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="item${index}" id="item${index}Yes" value="2">
+                                <label class="form-check-label" for="item${index}Yes">Yes</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="item${index}" id="item${index}No" value="-1" checked>
+                                <label class="form-check-label" for="item${index}No">No</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="item${index}" id="item${index}Partial" value="1">
+                                <label class="form-check-label" for="item${index}Partial">Partial</label>
+                            </div>
+                            <div class="form-floating mt-3">
+                                <textarea class="form-control" placeholder="Leave a comment here" id="comment${index}" name="comment${index}" style="resize:none; height: 100px"></textarea>
+                                <label for="floatingTextarea">Comments</label>
+                                <span class="float-end badge bg-secondary" style="margin-top: -25px; margin-right: 5px;" id="textarea-char-counter-comment${index}">0/300</span>
+
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+        container.appendChild(itemDiv);
+
+        // Atualizar o título com a opção escolhida
+        const radioButtons = document.querySelectorAll(`input[name="item${index}"]`);
+
+        radioButtons.forEach(radio => {
+          radio.addEventListener('change', function () {
+            const selectedOption = document.querySelector(`input[name="item${index}"]:checked`);
+            const selectedText = selectedOption.nextElementSibling.innerText;
+            const accordionButton = document.querySelector(`#heading${index} .accordion-button`);
+
+            let bg;
+            switch (selectedText) {
+              case "Yes":
+                bg = "bg-success";
+                break;
+              case "No":
+                bg = "bg-danger";
+                break;
+              case "Partial":
+                bg = "bg-warning";
+                break;
+              default:
+                bg = "bg-secondary";
+                break;
+            }
+
+            accordionButton.innerHTML = `${item}&nbsp;&#45;&nbsp;<span class="badge rounded-pill ${bg}">${selectedText}</span>`;
+          });
+        });
+      });
+
+      // Add event listeners for all textareas
+      document.querySelectorAll('textarea').forEach(t => {
+
+        t.addEventListener('input', function () {
+          const counter = document.getElementById(`textarea-char-counter-${this.name}`);
+          const currentLength = t.value.length;
+          counter.textContent = `${currentLength}/300`;
+          // Limitar a quantidade de caracteres a 140
+          if (currentLength > 300) {
+            t.value = this.value.substring(0, 300);  // Restringe a entrada a 140 caracteres
+            counter.textContent = "300/300";  // Define o contador como 140/140
+          }
+        });
+      });
+
+    }
+
+    function calculateFinalScore() {
+      // let totalScore = parseFloat(document.getElementById("questionScore").value) || 0;
+      let totalScore =  0;
+
+      items.forEach((item, index) => {
+        const selectedOption = document.querySelector(`input[name="item${index}"]:checked`);
+        totalScore += parseFloat(selectedOption.value);
+      });
+
+      const maxPossibleScore = items.length * 2;
+      let normalizedScore = (totalScore / maxPossibleScore) * 10;
+      normalizedScore = Math.max(0, normalizedScore).toFixed(2);
+
+      document.getElementById("finalScore").innerHTML = `Final Score: <span style="color: ${normalizedScore > 6 ? 'green' : normalizedScore > 5 ? 'orange' : 'red'}  ">${normalizedScore}</span>`;
+      document.getElementById("downloadPdfBtn").style.display = "block";
+    }
+
+    function generatePDF() {
+
+      const studentCodeInput = document.getElementById("studentCode");
+      const studentNameInput = document.getElementById("studentName");
+
+      const doc = new jsPDF();
+      let y = 10;
+
+      doc.setFontSize(18);
+      doc.text("Checkout Evaluation", 10, 10);
+
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+
+      y += 10;
+
+      doc.text(`${studentCodeInput.value} - ${studentNameInput.value}`, 10, y);
+
+      doc.setFontSize(12);
+
+      y += 10;
+
+      // doc.text(`Final Score: ${document.getElementById("finalScore").innerText.split(": ")[1]}`, 10, y);
+
+      // Get the width of the text to align it to the right
+      const finalScoreText = `Final Score: ${document.getElementById("finalScore").innerText.split(": ")[1]}`;
+      const textWidth = doc.getTextWidth(finalScoreText);
+
+      // Calculate position on the right side of the page
+      const xPosition = 210 - textWidth - 10; // 210 is the width of an A4 page in mm (with a margin of 10)
+
+      doc.text(finalScoreText, xPosition, y);
+
+      y += 10;
+
+      items.forEach((item, index) => {
+        if (y > 270) { // Prevent overflow, add new page if necessary
+          doc.addPage();
+          y = 10;
+        }
+
+        const selectedOption = document.querySelector(`input[name="item${index}"]:checked`);
+        const commentText = document.getElementById(`comment${index}`).value;
+
+        let optionText = selectedOption.nextElementSibling.innerText;
+        let comment = `${((index + 1) < 10) ? '0' : ''}${index + 1}. ${item}: `;
+
+        // Split the comment to handle the color change for the selected option
+        let firstPart = comment; // Text before the option (Item number + Item name)
+        let coloredText = optionText; // The selected option ("Yes", "No", or "Partial")
+        let restOfText = '';
+
+        // Write the first part (before the option)
+        doc.setTextColor(0, 0, 0); // Default color (black)
+        doc.text(firstPart, 10, y);
+
+        // Now, handle the color of the selected option
+        if (coloredText === "Yes") {
+          doc.setTextColor(0, 128, 0); // Green for Yes
+        } else if (coloredText === "No") {
+          doc.setTextColor(255, 0, 0); // Red for No
+        } else if (coloredText === "Partial") {
+          doc.setTextColor(255, 165, 0); // Orange for Partial
+        }
+
+        // Write the colored option (Yes/No/Partial)
+        doc.text(coloredText, doc.getTextWidth(firstPart) + 10, y);
+
+        // Reset the color back to black for the rest of the comment
+        doc.setTextColor(0, 0, 0);
+
+        // If there's a comment, add it under the option
+        if (commentText.trim() !== "") {
+          doc.setTextColor(0, 0, 255); // Azul para o comentário
+          // restOfText = `\n\nComment: ${commentText}`;
+          // doc.text(restOfText, 10, y);
+
+          // Usa splitTextToSize para dividir o comentário em várias linhas, com limite de largura
+          const maxWidth = 190; // Largura máxima antes de quebrar a linha (ajuste conforme necessário)
+          // const lines = doc.splitTextToSize(`\n\nComment: ${commentText}`, maxWidth);
+          const lines = doc.splitTextToSize(`\n\n${commentText}`, maxWidth);
+
+          // Escreve as linhas do comentário, considerando a quebra automática
+          doc.text(lines, 10, y);
+
+          doc.setTextColor(0, 0, 0); // Cor preta para o restante do texto
+          y += 30;
+        } else {
+          y += 10;
+        }
+
+      });
+
+      doc.save("Checkout_Evaluation.pdf");
+    }
+
+
+
+    document.addEventListener("DOMContentLoaded", generateItems);
+  </script>
+</body>
+
+</html>
